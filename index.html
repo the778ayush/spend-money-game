@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spend Money Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <!-- Load React -->
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/styled-components@5.3.10/dist/styled-components.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.21.4/babel.min.js"></script>
+
+    <script type="text/babel">
+        // Styled components
+        const { styled } = window.styled;
+        
+        const AppContainer = styled.div`
+            font-family: 'Open Sans', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        `;
+        
+        const Header = styled.header`
+            text-align: center;
+            padding: 2rem 0;
+        `;
+        
+        const Title = styled.h1`
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #333;
+        `;
+        
+        const MoneyDisplay = styled.div`
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2ecc71;
+            position: sticky;
+            top: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            margin: 1rem 0;
+        `;
+        
+        const ProductGrid = styled.div`
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        `;
+        
+        const ProductCard = styled.div`
+            background-color: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+            
+            &:hover {
+                transform: translateY(-5px);
+            }
+        `;
+        
+        const ProductImage = styled.div`
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+            
+            img {
+                max-height: 140px;
+                max-width: 80%;
+                object-fit: contain;
+            }
+        `;
+        
+        const ProductInfo = styled.div`
+            padding: 1rem;
+            text-align: center;
+        `;
+        
+        const ProductName = styled.h2`
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        `;
+        
+        const ProductPrice = styled.div`
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #e74c3c;
+            margin-bottom: 1rem;
+        `;
+        
+        const QuantityControl = styled.div`
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        `;
+        
+        const Button = styled.button`
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        `;
+        
+        const BuyButton = styled(Button)`
+            background-color: #2ecc71;
+            color: white;
+            
+            &:not(:disabled):hover {
+                background-color: #27ae60;
+            }
+        `;
+        
+        const SellButton = styled(Button)`
+            background-color: #e74c3c;
+            color: white;
+            
+            &:not(:disabled):hover {
+                background-color: #c0392b;
+            }
+        `;
+        
+        const QuantityInput = styled.input`
+            width: 80px;
+            text-align: center;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+        `;
+        
+        const Receipt = styled.div`
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-top: 2rem;
+        `;
+        
+        const ReceiptTitle = styled.h2`
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #333;
+            border-bottom: 2px dashed #ddd;
+            padding-bottom: 1rem;
+        `;
+        
+        const ReceiptItem = styled.div`
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+            
+            &:last-child {
+                border-bottom: none;
+            }
+        `;
+        
+        const ReceiptTotal = styled.div`
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-top: 2px solid #333;
+            margin-top: 1rem;
+            font-weight: 700;
+            font-size: 1.2rem;
+        `;
+        
+        // Create Context for the app
+        const MoneyContext = React.createContext();
+        
+        // Sample product data
+        const products = [
+            { id: 1, name: "Big Mac", price: 2, image: "https://neal.fun/spend/images/big-mac.jpg" },
+            { id: 2, name: "Cup of Coffee", price: 4, image: "https://neal.fun/spend/images/coffee.jpg" },
+            { id: 3, name: "Book", price: 15, image: "https://neal.fun/spend/images/book.jpg" },
+            { id: 4, name: "Movie Ticket", price: 12, image: "https://neal.fun/spend/images/movie-ticket.jpg" },
+            { id: 5, name: "Netflix Subscription (1 year)", price: 100, image: "https://neal.fun/spend/images/netflix-subscription.jpg" },
+            { id: 6, name: "Smartphone", price: 700, image: "https://neal.fun/spend/images/smartphone.jpg" },
+            { id: 7, name: "Gaming Console", price: 299, image: "https://neal.fun/spend/images/gaming-console.jpg" },
+            { id: 8, name: "Designer Handbag", price: 1000, image: "https://neal.fun/spend/images/designer-handbag.jpg" },
+            { id: 9, name: "Luxury Watch", price: 5000, image: "https://neal.fun/spend/images/rolex.jpg" },
+            { id: 10, name: "Diamond Ring", price: 10000, image: "https://neal.fun/spend/images/diamond-ring.jpg" },
+            { id: 11, name: "Jet Ski", price: 8000, image: "https://neal.fun/spend/images/jet-ski.jpg" },
+            { id: 12, name: "Car", price: 30000, image: "https://neal.fun/spend/images/car.jpg" },
+            { id: 13, name: "Luxury Car", price: 200000, image: "https://neal.fun/spend/images/tesla.jpg" },
+            { id: 14, name: "Yacht", price: 7500000, image: "https://neal.fun/spend/images/yacht.jpg" },
+            { id: 15, name: "Mansion", price: 5000000, image: "https://neal.fun/spend/images/mansion.jpg" },
+            { id: 16, name: "Private Jet", price: 20000000, image: "https://neal.fun/spend/images/private-jet.jpg" },
+            { id: 17, name: "Skyscraper", price: 850000000, image: "https://neal.fun/spend/images/skyscraper.jpg" },
+            { id: 18, name: "Cruise Ship", price: 1200000000, image: "https://neal.fun/spend/images/cruise-ship.jpg" },
+            { id: 19, name: "NBA Team", price: 2120000000, image: "https://neal.fun/spend/images/nba-team.jpg" },
+            { id: 20, name: "Make a Movie", price: 100000000, image: "https://neal.fun/spend/images/movie.jpg" },
+        ];
+        
+        // MoneyProvider component
+        function MoneyProvider({ children }) {
+            const [money, setMoney] = React.useState(100000000000); // $100 billion initial money
+            const [cart, setCart] = React.useState({}); // Cart object to store quantities
+            
+            // Format money as currency
+            const formatMoney = (amount) => {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                }).format(amount);
+            };
+            
+            // Add to cart
+            const addToCart = (product, quantity = 1) => {
+                const cost = product.price * quantity;
+                if (money >= cost) {
+                    setCart(prevCart => {
+                        const currentQuantity = prevCart[product.id] || 0;
+                        return {
+                            ...prevCart,
+                            [product.id]: currentQuantity + quantity,
+                        };
+                    });
+                    setMoney(prevMoney => prevMoney - cost);
+                }
+            };
+            
+            // Remove from cart
+            const removeFromCart = (product, quantity = 1) => {
+                setCart(prevCart => {
+                    const currentQuantity = prevCart[product.id] || 0;
+                    const newQuantity = Math.max(0, currentQuantity - quantity);
+                    
+                    const newCart = {
+                        ...prevCart,
+                        [product.id]: newQuantity,
+                    };
+                    
+                    // If quantity is 0, remove the product from cart
+                    if (newQuantity === 0) {
+                        delete newCart[product.id];
+                    }
+                    
+                    return newCart;
+                });
+                
+                setMoney(prevMoney => prevMoney + (product.price * quantity));
+            };
+            
+            // Set exact quantity
+            const setQuantity = (product, quantity) => {
+                const parsedQuantity = parseInt(quantity) || 0;
+                if (parsedQuantity < 0) return;
+                
+                const currentQuantity = cart[product.id] || 0;
+                const quantityDiff = parsedQuantity - currentQuantity;
+                
+                if (quantityDiff > 0) {
+                    // Adding more items
+                    const cost = product.price * quantityDiff;
+                    if (money >= cost) {
+                        setCart(prevCart => ({
+                            ...prevCart,
+                            [product.id]: parsedQuantity,
+                        }));
+                        setMoney(prevMoney => prevMoney - cost);
+                    }
+                } else if (quantityDiff < 0) {
+                    // Removing items
+                    setCart(prevCart => {
+                        const newCart = {
+                            ...prevCart,
+                            [product.id]: parsedQuantity,
+                        };
+                        
+                        // If quantity is 0, remove the product from cart
+                        if (parsedQuantity === 0) {
+                            delete newCart[product.id];
+                        }
+                        
+                        return newCart;
+                    });
+                    
+                    setMoney(prevMoney => prevMoney - (product.price * quantityDiff)); // Subtracting a negative = adding
+                }
+            };
+            
+            // Calculate total spent
+            const calculateTotalSpent = () => {
+                return Object.entries(cart).reduce((total, [productId, quantity]) => {
+                    const product = products.find(p => p.id === parseInt(productId));
+                    return total + (product.price * quantity);
+                }, 0);
+            };
+            
+            const value = {
+                money,
+                cart,
+                addToCart,
+                removeFromCart,
+                setQuantity,
+                formatMoney,
+                calculateTotalSpent,
+            };
+            
+            return (
+                <MoneyContext.Provider value={value}>
+                    {children}
+                </MoneyContext.Provider>
+            );
+        }
+        
+        // Product component
+        function Product({ product }) {
+            const { money, cart, addToCart, removeFromCart, setQuantity, formatMoney } = React.useContext(MoneyContext);
+            const quantity = cart[product.id] || 0;
+            
+            const handleQuantityChange = (e) => {
+                const newQuantity = parseInt(e.target.value) || 0;
+                setQuantity(product, newQuantity);
+            };
+            
+            return (
+                <ProductCard>
+                    <ProductImage>
+                        <img src={product.image} alt={product.name} />
+                    </ProductImage>
+                    <ProductInfo>
+                        <ProductName>{product.name}</ProductName>
+                        <ProductPrice>{formatMoney(product.price)}</ProductPrice>
+                        <QuantityControl>
+                            <SellButton 
+                                onClick={() => removeFromCart(product)} 
+                                disabled={quantity === 0}
+                            >
+                                Sell
+                            </SellButton>
+                            <QuantityInput 
+                                type="number" 
+                                min="0" 
+                                value={quantity}
+                                onChange={handleQuantityChange}
+                            />
+                            <BuyButton 
+                                onClick={() => addToCart(product)}
+                                disabled={money < product.price}
+                            >
+                                Buy
+                            </BuyButton>
+                        </QuantityControl>
+                    </ProductInfo>
+                </ProductCard>
+            );
+        }
+        
+        // ReceiptSection component
+        function ReceiptSection() {
+            const { cart, formatMoney, calculateTotalSpent } = React.useContext(MoneyContext);
+            const hasItems = Object.keys(cart).length > 0;
+            
+            if (!hasItems) {
+                return null;
+            }
+            
+            return (
+                <Receipt>
+                    <ReceiptTitle>Your Receipt</ReceiptTitle>
+                    {Object.entries(cart).map(([productId, quantity]) => {
+                        const product = products.find(p => p.id === parseInt(productId));
+                        const total = product.price * quantity;
+                        
+                        return (
+                            <ReceiptItem key={productId}>
+                                <div>{quantity} x {product.name}</div>
+                                <div>{formatMoney(total)}</div>
+                            </ReceiptItem>
+                        );
+                    })}
+                    <ReceiptTotal>
+                        <div>TOTAL SPENT:</div>
+                        <div>{formatMoney(calculateTotalSpent())}</div>
+                    </ReceiptTotal>
+                </Receipt>
+            );
+        }
+        
+        // App component
+        function App() {
+            const { money, formatMoney } = React.useContext(MoneyContext);
+            
+            return (
+                <AppContainer>
+                    <Header>
+                        <Title>Spend $100 Billion</Title>
+                    </Header>
+                    
+                    <MoneyDisplay>
+                        <span>Remaining: {formatMoney(money)}</span>
+                    </MoneyDisplay>
+                    
+                    <ProductGrid>
+                        {products.map(product => (
+                            <Product key={product.id} product={product} />
+                        ))}
+                    </ProductGrid>
+                    
+                    <ReceiptSection />
+                </AppContainer>
+            );
+        }
+        
+        // Render the App
+        ReactDOM.createRoot(document.getElementById('root')).render(
+            <MoneyProvider>
+                <App />
+            </MoneyProvider>
+        );
+    </script>
+</body>
+</html>
